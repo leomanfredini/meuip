@@ -2,10 +2,10 @@
 
 function getUserIP()
 {
-    // Get real visitor IP behind CloudFlare network
+    // Retorna o IP real de um visitante que esteja atrás da rede CloudFlare
     if (isset($_SERVER["HTTP_CF_CONNECTING_IP"])) {
-              $_SERVER['REMOTE_ADDR'] = $_SERVER["HTTP_CF_CONNECTING_IP"];
-              $_SERVER['HTTP_CLIENT_IP'] = $_SERVER["HTTP_CF_CONNECTING_IP"];
+        $_SERVER['REMOTE_ADDR'] = $_SERVER["HTTP_CF_CONNECTING_IP"];
+        $_SERVER['HTTP_CLIENT_IP'] = $_SERVER["HTTP_CF_CONNECTING_IP"];
     }
     $client  = @$_SERVER['HTTP_CLIENT_IP'];
     $forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
@@ -27,101 +27,115 @@ function getUserIP()
     return $ip;
 }
 
-
 $user_ip = getUserIP();
 
+// Obter informações de geolocalização usando a API ip-api
+$geo_data = @file_get_contents("http://ip-api.com/json/{$user_ip}");
+$geo_info = $geo_data ? json_decode($geo_data, true) : null;
+
+$city = $geo_info && $geo_info['status'] === 'success' ? $geo_info['city'] : "Cidade não disponível";
+$region = $geo_info && $geo_info['status'] === 'success' ? $geo_info['regionName'] : "Região não disponível";
+$country = $geo_info && $geo_info['status'] === 'success' ? $geo_info['country'] : "País não disponível";
 
 ?>
 
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Ferramenta para verificar seu endereço IPv4 de conexão com a internet">
-    <meta name="author" content="Leonardo Manfredini">
-    <meta name="generator" content="">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Exibe o endereço IP de sua conexão à internet">
+        <meta name="author" content="Leonardo">
+        <title>Seu Endereço IP</title>
 
-    <title>Meu IP</title>
+        <!-- Bootstrap core CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-    <link href="sheet.css" rel="stylesheet">
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-
-</head>
-<body>
-
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
-
-<main>
-  <div class="b-example-divider"></div>
-      <div class="bg-dark text-secondary px-4 py-5 text-center">
-        <div class="py-1">
-          <h1 class="display-5 fw-bold text-white">Seu endereço IPv4 é</h1>
-          <h1 class="display-5 fw-bold text-white"><?php echo $user_ip; ?></h1>
-        </div>
-      </div>
-  </div>
-
-
-  <div class="b-example-divider mb-0"></div>
-    <div id="app" class="px-4 pt-5 my-1 text-center border-bottom">
-          <!--<h1 class="display-4 fw-bold"></h1>//-->
-
-        <div class="col-lg-6 mx-auto">
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mb-4">
-                <!--<button type="button" class="btn btn-primary btn-lg" @click="loadNextImage">Ver Outro</button>-->
+        <style>
+            body {
+                background-color: rgb(180, 180, 180);
+                color: #212529;
+                font-family: Arial, sans-serif;
+                height: 100vh;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .ip-container {
+                position: relative; /* Necessário para posicionar o pin */
+                padding: 30px;
+                background-color: #fdfd96; /* Cor amarela de post-it */
+                border: 1px solid #e6e600; /* Borda amarela */
+                border-radius: 5px;
+                box-shadow: 15px 15px 15px rgba(0, 0, 0, 0.3); /* Sombra para dar profundidade */
+                transform: rotate(-3deg); /* Leve rotação para parecer um post-it */
+                max-width: 400px;
+                text-align: center;
+            }
+            .ip-title {
+                font-size: 2rem;
+                font-weight: bold;
+                margin-bottom: 20px;
+            }
+            .ip-address {
+                font-size: 2.5rem;
+                color: rgb(0, 68, 143);
+                font-weight: bold;
+            }
+            .geo-info {
+                font-size: 1.2rem;
+                color: #555;
+                margin-top: 10px;
+                text-align: left;
+            }
+            .geo-info p {
+                display: flex;
+                align-items: center;
+                margin: 5px 0;
+            }
+            .geo-info i {
+                margin-right: 10px;
+                color: #333;
+            }
+            .pin {
+                position: absolute;
+                top: -15px; /* Ajuste para posicionar o pin acima do post-it */
+                left: 50%; /* Centraliza horizontalmente */
+                transform: translateX(-50%); /* Centraliza o pin */
+                width: 20px;
+                height: 20px;
+                background-color: red; /* Cor do pin */
+                border-radius: 50%; /* Torna o pin circular */
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Sombra para o pin */
+            }
+            .pin::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 10px;
+                height: 10px;
+                background-color: white; /* Centro branco do pin */
+                border-radius: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="ip-container">
+            <div class="pin"></div> <!-- Pin vermelho -->
+            <h1 class="ip-title">Seu endereço IP é:</h1>
+            <p class="ip-address"><?php echo $user_ip; ?></p>
+            <div class="geo-info">
+                <p><i class="bi bi-geo-alt-fill"></i><?php echo $city; ?></p>
+                <p><i class="bi bi-map"></i><?php echo $region; ?></p>
+                <p><i class="bi bi-globe"></i><?php echo $country; ?></p>
             </div>
         </div>
 
-          <div class="overflow-hidden" style="max-height: 30vh;">
-              <div class="container px-1">
-                  <!--<img :src="image.url" class="img-fluid border rounded-3 shadow-lg mb-4" alt="Cat" width="700" height="500" loading="lazy">-->
-                  
-              </div>
-          </div>
-
-
-
-    </div>
-   </div>
-
-
-
-
-</main>
-
-<script>
-    new Vue({ 
-        el: '#app',
-        vuetify: new Vuetify(),
-        data: {
-            image: { url: ""}
-        },
-        created(){
-            this.loadNextImage();
-        } ,
-        methods:{
-            async loadNextImage()
-            {
-                try{
-                    axios.defaults.headers.common['x-api-key'] = "live_6HP53YmlSEFvMnUZCJzn1V8cH0emcQP55u3ug6c8w9VBB3PdANBp4ma6v1QCsNiq" // Replace this with your API Key
-
-                    let response = await axios.get('https://api.thecatapi.com/v1/images/search', { params: { limit:1, mime_types:"gif" } } ) // Ask for 1 Image, at full resolution
-
-                    this.image = response.data[0] // the response is an Array, so just use the first item as the Image
-
-                    console.log("-- Image from TheCatAPI.com")
-                    console.log("id:", this.image.id)
-                    console.log("url:", this.image.url)
-
-                }catch(err){
-                    console.log(err)
-                }
-            }
-        }
-    })
-</script>
-</body>
+        <!-- Bootstrap Icons -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
 </html>
